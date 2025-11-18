@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+onnxruntime
+torch
+numpy
+scikit-learn
+pandas
+pytest
+onnx
+python-multipart
+aiofiles
+jinja2
+streamlit
+requests
