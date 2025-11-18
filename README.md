@@ -62,8 +62,8 @@ By analyzing environmental and crop data, the system determines optimal watering
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/OnePunchMonk/AIHT-Project.git
-   cd AIHT-Project
+   git clone https://github.com/kushchhabra0/SDL-Smart-Irrigate.git
+   cd SDL-Smart-Irrigate
    ```
 
 2. **Create and activate a virtual environment**
