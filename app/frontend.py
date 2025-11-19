@@ -1,12 +1,14 @@
 # frontend.py
 
+import os
 import requests
 import streamlit as st
 import pandas as pd
 from datetime import datetime
 
 # ========= CONFIG =========
-BACKEND_URL = "http://127.0.0.1:8000"  # change if FastAPI runs elsewhere
+# WORKS ON RENDER + LOCALLY
+BACKEND_URL = os.environ.get("BACKEND_URL", "http://127.0.0.1:8000")
 
 st.set_page_config(
     page_title="Smart Irrigation – Scheduling Predictor",
@@ -48,16 +50,9 @@ st.markdown(
        FIXED SIDEBAR BUTTON COLORS
        =============================== */
     
-    /* We need to target the Streamlit button container which is a div
-       within the div we create with st.markdown. Streamlit components
-       often sit inside a div with a fixed style class. 
-       This structure uses the surrounding div for context. 
-    */
-
-    /* Normal sidebar buttons */
     .sidebar-button > div > button {
         width: 100% !important;
-        background-color: #111827 !important;   /* dark grey/blue */
+        background-color: #111827 !important;
         color: #e5e7eb !important;
         border-radius: 6px;
         border: 1px solid #1f2937;
@@ -66,13 +61,11 @@ st.markdown(
         margin-bottom: 0.25rem;
     }
 
-    /* Hover effect */
     .sidebar-button > div > button:hover {
-        background-color: #2563eb !important;   /* blue on hover */
+        background-color: #2563eb !important;
         color: #ffffff !important;
     }
 
-    /* Active page button (This is the one that forces the bright blue color) */
     .active-button > div > button {
         background-color: #2563eb !important;
         color: white !important;
@@ -80,7 +73,6 @@ st.markdown(
         font-weight: 600;
     }
 
-    /* Main buttons (non-sidebar) */
     .stButton>button {
         background-color: #2563eb;
         color: white;
@@ -129,34 +121,18 @@ if "page" not in st.session_state:
 # ========= UTILITY FUNCTIONS =========
 
 def custom_sidebar_button(label: str, page_name: str, key: str):
-    """
-    Renders a Streamlit button wrapped in a custom div to apply
-    active or normal styling based on the current session state page.
-    """
     is_active = st.session_state["page"] == page_name
     class_name = "active-button" if is_active else "sidebar-button"
-    
-    # 1. Start the custom wrapper div
+
     st.sidebar.markdown(f'<div class="{class_name}">', unsafe_allow_html=True)
     
-    # 2. Render the actual Streamlit button inside the wrapper
     if st.sidebar.button(label, key=key, use_container_width=True):
         st.session_state["page"] = page_name
     
-    # 3. Close the custom wrapper div
     st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
 
 def call_backend_predict(features):
-    """
-    Calls FastAPI backend /predict endpoint.
-
-    Backend expects:
-        { "values": [float, float, ...] }
-
-    and returns:
-        { "predicted_class": int }
-    """
     try:
         response = requests.post(
             f"{BACKEND_URL}/predict",
@@ -172,78 +148,68 @@ def call_backend_predict(features):
 
 
 def map_class_to_recommendation(predicted_class: int):
-    """
-    Map numeric class to irrigation recommendation text.
-    """
     mapping = {
         0: "Class 0 – No irrigation needed: soil moisture is sufficient.",
         1: "Class 1 – Light irrigation recommended within the next few hours.",
         2: "Class 2 – Moderate irrigation needed; schedule irrigation today.",
         3: "Class 3 – Heavy irrigation required immediately; soil is very dry.",
     }
-    return mapping.get(
-        predicted_class,
-        "Unknown class – please check your model documentation.",
-    )
+    return mapping.get(predicted_class, "Unknown class – please check your model documentation.")
 
 
 def estimate_irrigation_duration(predicted_class: int, field_area_ha: float):
-    """
-    Very simple rule-of-thumb duration suggestion based on class and field area.
-    You can tune these numbers later using agronomy guidance.
-    """
     base_minutes_per_ha = {
-        0: 0,   # no irrigation
-        1: 20,  # light
-        2: 40,  # moderate
-        3: 60,  # heavy
+        0: 0,
+        1: 20,
+        2: 40,
+        3: 60,
     }.get(predicted_class, 30)
 
     total_minutes = base_minutes_per_ha * field_area_ha
     return base_minutes_per_ha, total_minutes
 
 
-# ========= CROP DATA (Numerical ranges retained) =========
+# ========= CROP DATA =========
 
 CROP_CONDITIONS = {
     "Rice": {
         "Temperature": "21–35 °C",
         "Humidity": "60–80 %",
-        "Soil Moisture": "70–100 %", # Flooded / very wet
+        "Soil Moisture": "70–100 %",
         "Seasonal Rainfall": "1000–2000 mm per season",
-        "Wind Speed": "0–5 m/s",    # Low wind preferred
+        "Wind Speed": "0–5 m/s",
         "Notes": "Needs standing water for most of the growth period. Sensitive to water stress at flowering.",
     },
     "Wheat": {
         "Temperature": "10–24 °C",
         "Humidity": "40–60 %",
-        "Soil Moisture": "35–65 %", # Moderately moist, avoid waterlogging
+        "Soil Moisture": "35–65 %",
         "Seasonal Rainfall": "400–750 mm per season",
-        "Wind Speed": "0–10 m/s",   # Low to moderate wind
+        "Wind Speed": "0–10 m/s",
         "Notes": "Sensitive to water stress at grain filling. Prefers cool, dry climate during maturity.",
     },
     "Maize": {
         "Temperature": "18–27 °C",
         "Humidity": "50–70 %",
-        "Soil Moisture": "40–70 %", # Moist but well-drained
+        "Soil Moisture": "40–70 %",
         "Seasonal Rainfall": "500–800 mm per season",
-        "Wind Speed": "0–8 m/s",    # Avoid high winds during tasseling
+        "Wind Speed": "0–8 m/s",
         "Notes": "Critical stages are tasseling, silking, and grain filling.",
     },
     "Cotton": {
         "Temperature": "21–30 °C",
         "Humidity": "40–60 %",
-        "Soil Moisture": "30–60 %", # Moderately moist; sensitive to waterlogging
+        "Soil Moisture": "30–60 %",
         "Seasonal Rainfall": "600–800 mm per season",
-        "Wind Speed": "0–15 m/s",   # Moderate breeze is acceptable
+        "Wind Speed": "0–15 m/s",
         "Notes": "Requires less water at maturity to avoid vegetative growth and promote boll opening.",
     },
     "Vegetables (general)": {
-        "Temperature": "18–30 °C (varies by crop)",
+        "Temperature": "18–30 °C",
         "Humidity": "50–80 %",
-        "Soil Moisture": "50–75 %", # Uniformly moist soil; avoid drying out
+        "Soil Moisture": "50–75 %",
         "Seasonal Rainfall": "Depends on crop; supplementary irrigation usually required",
-        "Wind Speed": "0–5 m/s",    # Low wind preferred
+        "Wind Speed": "0–5 m/s",
         "Notes": "Most vegetables are very sensitive to irregular watering. Use frequent, light irrigation.",
     },
 }
@@ -287,49 +253,32 @@ def page_predictor():
         """
         *Class meanings*
 
-        - *Class 0* – No irrigation needed (soil moisture sufficient)  
+        - *Class 0* – No irrigation needed  
         - *Class 1* – Light irrigation  
         - *Class 2* – Moderate irrigation  
-        - *Class 3* – Heavy irrigation (field very dry)
+        - *Class 3* – Heavy irrigation
         """
     )
 
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        temperature = st.number_input(
-            "Temperature (°C)", min_value=-10.0, max_value=60.0, value=30.0
-        )
-        humidity = st.number_input(
-            "Humidity (%)", min_value=0.0, max_value=100.0, value=60.0
-        )
+        temperature = st.number_input("Temperature (°C)", -10.0, 60.0, 30.0)
+        humidity = st.number_input("Humidity (%)", 0.0, 100.0, 60.0)
 
     with col2:
-        soil_moisture = st.number_input(
-            "Soil Moisture (%)", min_value=0.0, max_value=100.0, value=30.0
-        )
-        altitude = st.number_input(
-            "Altitude (m)", min_value=-100.0, max_value=9000.0, value=300.0
-        )
+        soil_moisture = st.number_input("Soil Moisture (%)", 0.0, 100.0, 30.0)
+        altitude = st.number_input("Altitude (m)", -100.0, 9000.0, 300.0)
 
     with col3:
-        rainfall = st.number_input(
-            "Rainfall last 24h (mm)", min_value=0.0, max_value=500.0, value=0.0
-        )
-        wind_speed = st.number_input(
-            "Wind Speed (m/s)", min_value=0.0, max_value=50.0, value=2.0
-        )
+        rainfall = st.number_input("Rainfall last 24h (mm)", 0.0, 500.0, 0.0)
+        wind_speed = st.number_input("Wind Speed (m/s)", 0.0, 50.0, 2.0)
 
     st.markdown("---")
 
     col_area, col_crop = st.columns([1, 1.2])
     with col_area:
-        field_area = st.number_input(
-            "Field area (hectares)",
-            min_value=0.1,
-            max_value=1000.0,
-            value=1.0,
-        )
+        field_area = st.number_input("Field area (hectares)", 0.1, 1000.0, 1.0)
     with col_crop:
         crop_type = st.selectbox(
             "Crop Type (for your own reference)",
@@ -351,30 +300,21 @@ def page_predictor():
         predicted_class, raw_response = call_backend_predict(features)
 
         if predicted_class is not None:
-            # Show raw class
             st.success(f"Model output: *Class {predicted_class}*")
 
-            # Human-readable explanation
             recommendation = map_class_to_recommendation(predicted_class)
             st.write(recommendation)
 
-            # Automatic duration suggestion
-            base_per_ha, total_minutes = estimate_irrigation_duration(
-                predicted_class, field_area
-            )
+            base_per_ha, total_minutes = estimate_irrigation_duration(predicted_class, field_area)
+
             if predicted_class == 0:
-                st.info(
-                    "Since this is *Class 0 (no irrigation needed)*, "
-                    "no irrigation duration is suggested."
-                )
+                st.info("Since this is *Class 0*, no irrigation needed.")
             else:
                 st.info(
-                    f"Suggested irrigation duration: *~{total_minutes:.0f} minutes* "
-                    f"for your field area ({field_area} ha**, "
-                    f"≈ {base_per_ha:.0f} minutes/ha for class {predicted_class})."
+                    f"Suggested irrigation duration: ~{total_minutes:.0f} minutes "
+                    f"for your field area ({field_area} ha — {base_per_ha} min/ha)."
                 )
 
-            # Save to history
             st.session_state["prediction_history"].append(
                 {
                     "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -393,25 +333,14 @@ def page_predictor():
             with st.expander("View raw response (debug)"):
                 st.json(raw_response)
 
-    # Prediction history
     if st.session_state["prediction_history"]:
-        st.markdown(
-            '<div class="section-title">Recent predictions</div>',
-            unsafe_allow_html=True,
-        )
+        st.markdown('<div class="section-title">Recent predictions</div>', unsafe_allow_html=True)
         df = pd.DataFrame(st.session_state["prediction_history"])
         st.dataframe(df, use_container_width=True)
 
 
 def page_crop_guide():
     st.title("Crop-wise Best Conditions")
-
-    st.write(
-        """
-        Select a crop to view its recommended environmental conditions.
-        You can adjust these values according to your local agronomy notes.
-        """
-    )
 
     crop = st.selectbox("Choose a crop", list(CROP_CONDITIONS.keys()))
     data = CROP_CONDITIONS[crop]
@@ -435,7 +364,6 @@ def page_crop_guide():
     with c3:
         st.markdown('<div class="metric-card">', unsafe_allow_html=True)
         st.subheader("Soil Moisture")
-        # REMOVED BOLDING: f'**{data["Soil Moisture"]}**' -> data["Soil Moisture"]
         st.write(data["Soil Moisture"]) 
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -447,46 +375,40 @@ def page_crop_guide():
 
     st.markdown('<div class="metric-card">', unsafe_allow_html=True)
     st.subheader("Wind Speed")
-    # REMOVED BOLDING: f'**{data["Wind Speed"]}**' -> data["Wind Speed"]
     st.write(data["Wind Speed"])
     st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown('<div class="section-title">Notes</div>', unsafe_allow_html=True)
     st.write(data["Notes"])
 
-    # Optional: comparison table of all crops
     st.markdown('<div class="section-title">Compare crops</div>', unsafe_allow_html=True)
-    table_data = []
+    rows = []
     for name, vals in CROP_CONDITIONS.items():
-        row = {
+        rows.append({
             "Crop": name,
             "Temperature": vals["Temperature"],
             "Humidity": vals["Humidity"],
             "Soil Moisture": vals["Soil Moisture"],
             "Seasonal Rainfall": vals["Seasonal Rainfall"],
             "Wind Speed": vals["Wind Speed"],
-        }
-        table_data.append(row)
-
-    table_df = pd.DataFrame(table_data)
-    st.dataframe(table_df, use_container_width=True)
+        })
+    df = pd.DataFrame(rows)
+    st.dataframe(df, use_container_width=True)
 
 
-# ========= SIDEBAR NAVIGATION (buttons, no radio) =========
+# ========= SIDEBAR NAVIGATION =========
 
 with st.sidebar:
     st.title("Smart Irrigation")
     st.markdown("---")
 
-    # Use the helper function to render all buttons correctly
-    # and automatically apply 'active-button' or 'sidebar-button' class.
-    
     custom_sidebar_button("Home", "Home", key="btn_home")
     custom_sidebar_button("Irrigation Predictor", "Irrigation Predictor", key="btn_predict")
     custom_sidebar_button("Crop Guide", "Crop Guide", key="btn_crop_guide")
 
     st.markdown("---")
     st.markdown(f"*Current page:* {st.session_state['page']}")
+
 
 # ========= ROUTER =========
 
