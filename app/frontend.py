@@ -25,7 +25,7 @@ st.markdown(
         background-color: #e5e7eb;
     }
 
-    /* Top header (strip near Deploy) */
+    /* Top header */
     [data-testid="stHeader"] {
         background-color: #0f172a;
         border-bottom: 1px solid #1f2937;
@@ -44,10 +44,24 @@ st.markdown(
         color: #e5e7eb !important;
     }
 
-    /* Sidebar buttons */
-    .sidebar-button > button {
+    /* ===============================
+       FIXED SIDEBAR BUTTON COLORS
+       =============================== */
+    
+    /* We need to target the Streamlit button container which is a div
+       within the div we create with st.markdown. Streamlit components
+       often sit inside a div with a fixed style class. 
+       This structure uses the surrounding div for context. 
+       
+       We only need to ensure the custom wrapper is used.
+       
+       Note: st.markdown is used to create the DIV wrapper with the class.
+    */
+
+    /* Normal sidebar buttons */
+    .sidebar-button > div > button {
         width: 100% !important;
-        background-color: #111827;
+        background-color: #111827 !important;   /* dark grey/blue */
         color: #e5e7eb !important;
         border-radius: 6px;
         border: 1px solid #1f2937;
@@ -55,9 +69,19 @@ st.markdown(
         font-weight: 500;
         margin-bottom: 0.25rem;
     }
-    .sidebar-button > button:hover {
-        background-color: #2563eb !important;
+
+    /* Hover effect */
+    .sidebar-button > div > button:hover {
+        background-color: #2563eb !important;   /* blue on hover */
         color: #ffffff !important;
+    }
+
+    /* Active page button (This is the one that forces the bright blue color) */
+    .active-button > div > button {
+        background-color: #2563eb !important;
+        color: white !important;
+        border: 1px solid #1e40af !important;
+        font-weight: 600;
     }
 
     /* Main buttons (non-sidebar) */
@@ -74,7 +98,6 @@ st.markdown(
         color: white;
     }
 
-    /* "metric-card" now just acts as simple text container (no box) */
     .metric-card {
         padding: 0;
         border-radius: 0;
@@ -98,6 +121,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+
 # ========= SESSION STATE =========
 if "prediction_history" not in st.session_state:
     st.session_state["prediction_history"] = []
@@ -108,15 +132,28 @@ if "page" not in st.session_state:
 
 # ========= UTILITY FUNCTIONS =========
 
+def custom_sidebar_button(label: str, page_name: str, key: str):
+    """
+    Renders a Streamlit button wrapped in a custom div to apply
+    active or normal styling based on the current session state page.
+    """
+    is_active = st.session_state["page"] == page_name
+    class_name = "active-button" if is_active else "sidebar-button"
+    
+    # 1. Start the custom wrapper div
+    st.sidebar.markdown(f'<div class="{class_name}">', unsafe_allow_html=True)
+    
+    # 2. Render the actual Streamlit button inside the wrapper
+    if st.sidebar.button(label, key=key, use_container_width=True):
+        st.session_state["page"] = page_name
+    
+    # 3. Close the custom wrapper div
+    st.sidebar.markdown('</div>', unsafe_allow_html=True)
+
+
 def call_backend_predict(features):
     """
     Calls FastAPI backend /predict endpoint.
-
-    Backend expects:
-        { "values": [float, float, ...] }
-
-    and returns:
-        { "predicted_class": int }
     """
     try:
         response = requests.post(
@@ -151,7 +188,6 @@ def map_class_to_recommendation(predicted_class: int):
 def estimate_irrigation_duration(predicted_class: int, field_area_ha: float):
     """
     Very simple rule-of-thumb duration suggestion based on class and field area.
-    You can tune these numbers later using agronomy guidance.
     """
     base_minutes_per_ha = {
         0: 0,   # no irrigation
@@ -164,8 +200,7 @@ def estimate_irrigation_duration(predicted_class: int, field_area_ha: float):
     return base_minutes_per_ha, total_minutes
 
 
-# ========= CROP DATA =========
-
+# ========= CROP DATA (omitted for brevity, assume it's here) =========
 CROP_CONDITIONS = {
     "Rice": {
         "Temperature": "21–35 °C",
@@ -210,7 +245,7 @@ CROP_CONDITIONS = {
 }
 
 
-# ========= PAGE FUNCTIONS =========
+# ========= PAGE FUNCTIONS (omitted for brevity, assume they are here) =========
 
 def page_home():
     st.title("Smart Irrigation – Scheduling Assistant")
@@ -437,21 +472,12 @@ with st.sidebar:
     st.title("Smart Irrigation")
     st.markdown("---")
 
-    # Home button styled same as others via .sidebar-button
-    st.markdown('<div class="sidebar-button">', unsafe_allow_html=True)
-    if st.button("Home", key="btn_home", help="Overview and instructions", use_container_width=True):
-        st.session_state["page"] = "Home"
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    st.markdown('<div class="sidebar-button">', unsafe_allow_html=True)
-    if st.button("Irrigation Predictor", key="btn_predict", use_container_width=True):
-        st.session_state["page"] = "Irrigation Predictor"
-    st.markdown('</div>', unsafe_allow_html=True)
-
-    st.markdown('<div class="sidebar-button">', unsafe_allow_html=True)
-    if st.button("Crop Guide", key="btn_crop_guide", use_container_width=True):
-        st.session_state["page"] = "Crop Guide"
-    st.markdown('</div>', unsafe_allow_html=True)
+    # Use the helper function to render all buttons correctly
+    # and automatically apply 'active-button' or 'sidebar-button' class.
+    
+    custom_sidebar_button("Home", "Home", key="btn_home")
+    custom_sidebar_button("Irrigation Predictor", "Irrigation Predictor", key="btn_predict")
+    custom_sidebar_button("Crop Guide", "Crop Guide", key="btn_crop_guide")
 
     st.markdown("---")
     st.markdown(f"*Current page:* {st.session_state['page']}")
