@@ -1,145 +1,144 @@
+# Smart-Irrigate – AI-Powered Irrigation Scheduling System
 
-# SmartIrrigate
-
-An AI-powered irrigation scheduling system designed to optimize water usage in agriculture by leveraging machine learning, data analytics, and cross-language support including R and PySpark.
+Smart-Irrigate is an AI-driven irrigation decision-support system designed to help farmers make informed watering decisions using real-time environmental sensor data.  
+This project leverages machine learning, PySpark-based teacher models, ONNX inference, and a modern Streamlit-powered interface.
 
 ## 🌱 Overview
 
-This project aims to enhance agricultural productivity by providing intelligent irrigation recommendations.  
-By analyzing environmental and crop data, the system determines optimal watering schedules, ensuring efficient water utilization and promoting sustainable farming practices.
+Smart-Irrigate provides **accurate irrigation class predictions (0–3)** based on:
 
-## 🧠 Features
+- Temperature  
+- Humidity  
+- Soil moisture  
+- Altitude  
+- Rainfall  
+- Wind speed  
 
-- **Machine Learning Models**: Implements both teacher and student models using PyTorch and ONNX for efficient inference.
-- **Data Analysis**: Utilizes Jupyter notebooks and R scripts for exploratory data analysis to understand and preprocess the dataset.
-- **Big Data Processing**: Employs PySpark for training large-scale teacher models.
-- **API Service**: Provides a FastAPI-based backend to serve model predictions.
-- **Docker Integration**: Includes Docker support for containerized deployment.
-- **Streamlit GUI**: Offers a GUI for user to specify sensor readings and recieve prediction.
+The system analyzes sensor data and generates:
 
+- 🌿 **Irrigation Class (0–3)**
+- 💧 **Watering recommendations**
+- ⏱️ **Estimated irrigation duration based on field size**
+- 📘 **Crop-specific climate requirements** via Crop Guide
+
+## 🧠 Key Features
+
+- **Machine Learning Pipeline**: PyTorch student model, PySpark teacher model, ONNX export  
+- **FastAPI Backend**: Lightweight prediction endpoint  
+- **Streamlit Frontend**: Modern multi-page UI with custom styling  
+- **Crop Knowledge Base**  
+- **Comprehensive Dataset & EDA Notebook**  
+- **Clean project structure with modular code**
 
 ## 📁 Project Structure
 
-```plaintext
-├── api/
-│   └── app.py                      # FastAPI application entry point
-├── app/
-│   ├── __init__.py                 # Package initializer
-│   ├── eda-aihtproject.ipynb       # Exploratory data analysis notebook
-│   ├── frontend.py                 # Frontend logic for user interface
-│   ├── model_train_and_export.py  # Model training and export utilities
-│   ├── model_utils.py              # Model utility functions
-│   ├── pyspark_teacher.py         # PySpark-based teacher model processing
-│   └── teacher.py                 # Teacher model inference logic
-├── artifacts/
-│   ├── student_model.onnx          # ONNX format student model
-│   ├── student_model.pt            # PyTorch format student model
-│   └── teacher_model.pt            # PyTorch format teacher model
-├── dataset/
-│   └── Irrigation Scheduling.csv   # Dataset file for irrigation scheduling
-│   └── app.py                     # Simulation application for hardware testing
-├── tests/
-│   ├── test_input.txt              # Sample input data for testing
-│   └── test_model.py               # Unit tests for model functionalities
-├── Dockerfile                     # Docker configuration for containerization
-├── README.md                      # Project overview and documentation
-├── requirements.txt               # Python dependencies
-└── run_instructions.md            # Instructions for running the application
+```
+SDL-Smart-Irrigate/
+├── api/                       # FastAPI backend
+├── app/                       # Frontend & ML utilities
+├── artifacts/                 # Trained models (ONNX/PT)
+├── dataset/                   # Irrigation dataset
+├── tests/                     # Unit tests
+├── Dockerfile
+├── requirements.txt
+└── README.md
 ```
 
 ## 🚀 Getting Started
 
-### Prerequisites
+### 1. Clone the repository
+```bash
+git clone https://github.com/kushchhabra0/SDL-Smart-Irrigate.git
+cd SDL-Smart-Irrigate
+```
 
-- Python 3.8 or higher  
-- Docker (for containerized deployment)  
-- R (for R-based data analysis)  
-- Apache Spark (for running PySpark)
-- Streamlit (for running GUI)  
+### 2. Create & Activate Virtual Environment
+```bash
+python -m venv venv
+venv\Scripts\activate      # Windows
+# or
+source venv/bin/activate    # Linux/Mac
+```
 
-### Installation
+### 3. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
 
-1. **Clone the repository**
+---
 
-   ```bash
-   git clone https://github.com/kushchhabra0/SDL-Smart-Irrigate.git
-   cd SDL-Smart-Irrigate
-   ```
+## 🖥️ Running the Backend (FastAPI)
+```bash
+uvicorn api.app:app --reload
+```
 
-2. **Create and activate a virtual environment**
+Backend will start at:
 
-   ```bash
-   python -m venv venv
-   source venv/bin/activate      # On Windows: venv\Scripts\activate
-   ```
+```
+http://127.0.0.1:8000
+```
 
-3. **Install Python dependencies**
+---
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+## 🖼️ Running the Frontend (Streamlit)
+```bash
+streamlit run app/frontend.py
+```
 
-4. **Install R packages (for R analysis)**
+Includes:
 
-   ```r
-   install.packages("tidyverse")
-   install.packages("data.table")
-   ```
+- Real-time sensor input  
+- Recommended value ranges  
+- Crop selection  
+- Class prediction  
+- Automatic irrigation duration  
+- Prediction history  
+- Crop Guide page  
 
-## 🏋️‍♂️ Training and Exporting the Model
+---
 
-- **Train and export to ONNX**  
-  ```bash
-  python model_train_and_export.py
-  ```
+## 🧠 Training & Exporting Models
 
-- **Run the teacher model using PySpark**  
-  ```bash
-  spark-submit pyspark_teacher.py
-  ```
+### Train student model & export to ONNX:
+```bash
+python app/model_train_and_export.py
+```
 
-## 🐳 Docker Deployment
+### Run teacher model via PySpark:
+```bash
+spark-submit app/pyspark_teacher.py
+```
 
-1. **Build the Docker image**
+---
 
-   ```bash
-   docker build -t irrigation-model .
-   ```
-
-2. **Run the Docker container**
-
-   ```bash
-   docker run -p 8000:8000 irrigation-model
-   ```
-
-## 🧪 API Testing
-
-You can test the prediction endpoint using `curl` or any API testing client:
+## 🧪 API Example Test
 
 ```bash
-curl -X POST http://localhost:8000/predict   -H "Content-Type: multipart/form-data"   -F "file=@test_input.txt"
+curl -X POST "http://127.0.0.1:8000/predict"  -H "Content-Type: application/json"  -d "{"values": [30, 60, 40, 300, 0, 2]}"
 ```
+
+---
 
 ## 📊 Data Analysis
 
-- `eda-aihtproject.ipynb`: R script for additional statistical analysis and visualizations.
-(Run on Kaggle env)
+The notebook `eda-aihtproject.ipynb` contains:
 
-## 📈 Visualization
+- Dataset exploration  
+- Distribution analysis  
+- Correlation study  
+- Preprocessing workflow  
 
-- `irrigation_aiht_powerbi.pbix`: Power BI dashboard for irrigation schedules and model insights.
-- `frontend.py`: GUI for non-technical users.
-
-## 🔗 Wokwi Simulation
-
-For a hardware simulation of the irrigation system, refer to the [AIHT Wokwi Simulation Repository](https://github.com/chaitanyadav69/AIHT).
-
-- Or refer [Deployment](https://wokwi.com/projects/428958546126055425)
-
-## Streamlit Deployment on HF Spaces 
-
-
-- Refer [this link](https://huggingface.co/spaces/OnePunchMonk101010/smart-irrigation)
 ---
 
-*Note: Ensure all environment variables and configurations are set appropriately before deploying the application.*
+## 🙌 Contributors
+
+- **Kushal Chhabra** — ML, UI, Backend, DevOps  
+- **Jay Talwar** — Frontend + ML Support  
+- **Riya Shekawat** — Data Analysis + Documentation  
+
+---
+
+## 📜 License
+
+This project is developed under SDL Lab guidelines for academic and research purposes.
+
