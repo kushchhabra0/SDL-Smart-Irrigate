@@ -52,10 +52,6 @@ st.markdown(
        within the div we create with st.markdown. Streamlit components
        often sit inside a div with a fixed style class. 
        This structure uses the surrounding div for context. 
-       
-       We only need to ensure the custom wrapper is used.
-       
-       Note: st.markdown is used to create the DIV wrapper with the class.
     */
 
     /* Normal sidebar buttons */
@@ -154,6 +150,12 @@ def custom_sidebar_button(label: str, page_name: str, key: str):
 def call_backend_predict(features):
     """
     Calls FastAPI backend /predict endpoint.
+
+    Backend expects:
+        { "values": [float, float, ...] }
+
+    and returns:
+        { "predicted_class": int }
     """
     try:
         response = requests.post(
@@ -188,6 +190,7 @@ def map_class_to_recommendation(predicted_class: int):
 def estimate_irrigation_duration(predicted_class: int, field_area_ha: float):
     """
     Very simple rule-of-thumb duration suggestion based on class and field area.
+    You can tune these numbers later using agronomy guidance.
     """
     base_minutes_per_ha = {
         0: 0,   # no irrigation
@@ -200,52 +203,53 @@ def estimate_irrigation_duration(predicted_class: int, field_area_ha: float):
     return base_minutes_per_ha, total_minutes
 
 
-# ========= CROP DATA (omitted for brevity, assume it's here) =========
+# ========= CROP DATA (Numerical ranges retained) =========
+
 CROP_CONDITIONS = {
     "Rice": {
         "Temperature": "21–35 °C",
         "Humidity": "60–80 %",
-        "Soil moisture": "Flooded / very wet soil",
-        "Seasonal rainfall": "1000–2000 mm per season",
-        "Wind": "Low wind preferred",
+        "Soil Moisture": "70–100 %", # Flooded / very wet
+        "Seasonal Rainfall": "1000–2000 mm per season",
+        "Wind Speed": "0–5 m/s",    # Low wind preferred
         "Notes": "Needs standing water for most of the growth period. Sensitive to water stress at flowering.",
     },
     "Wheat": {
         "Temperature": "10–24 °C",
         "Humidity": "40–60 %",
-        "Soil moisture": "Moderately moist, avoid waterlogging",
-        "Seasonal rainfall": "400–750 mm per season",
-        "Wind": "Low to moderate wind",
+        "Soil Moisture": "35–65 %", # Moderately moist, avoid waterlogging
+        "Seasonal Rainfall": "400–750 mm per season",
+        "Wind Speed": "0–10 m/s",   # Low to moderate wind
         "Notes": "Sensitive to water stress at grain filling. Prefers cool, dry climate during maturity.",
     },
     "Maize": {
         "Temperature": "18–27 °C",
         "Humidity": "50–70 %",
-        "Soil moisture": "Moist but well-drained",
-        "Seasonal rainfall": "500–800 mm per season",
-        "Wind": "Avoid high winds during tasseling",
+        "Soil Moisture": "40–70 %", # Moist but well-drained
+        "Seasonal Rainfall": "500–800 mm per season",
+        "Wind Speed": "0–8 m/s",    # Avoid high winds during tasseling
         "Notes": "Critical stages are tasseling, silking, and grain filling.",
     },
     "Cotton": {
         "Temperature": "21–30 °C",
         "Humidity": "40–60 %",
-        "Soil moisture": "Moderately moist; sensitive to waterlogging",
-        "Seasonal rainfall": "600–800 mm per season",
-        "Wind": "Moderate breeze is acceptable",
+        "Soil Moisture": "30–60 %", # Moderately moist; sensitive to waterlogging
+        "Seasonal Rainfall": "600–800 mm per season",
+        "Wind Speed": "0–15 m/s",   # Moderate breeze is acceptable
         "Notes": "Requires less water at maturity to avoid vegetative growth and promote boll opening.",
     },
     "Vegetables (general)": {
         "Temperature": "18–30 °C (varies by crop)",
         "Humidity": "50–80 %",
-        "Soil moisture": "Uniformly moist soil; avoid drying out",
-        "Seasonal rainfall": "Depends on crop; supplementary irrigation usually required",
-        "Wind": "Low wind preferred",
+        "Soil Moisture": "50–75 %", # Uniformly moist soil; avoid drying out
+        "Seasonal Rainfall": "Depends on crop; supplementary irrigation usually required",
+        "Wind Speed": "0–5 m/s",    # Low wind preferred
         "Notes": "Most vegetables are very sensitive to irregular watering. Use frequent, light irrigation.",
     },
 }
 
 
-# ========= PAGE FUNCTIONS (omitted for brevity, assume they are here) =========
+# ========= PAGE FUNCTIONS =========
 
 def page_home():
     st.title("Smart Irrigation – Scheduling Assistant")
@@ -431,18 +435,20 @@ def page_crop_guide():
     with c3:
         st.markdown('<div class="metric-card">', unsafe_allow_html=True)
         st.subheader("Soil Moisture")
-        st.write(data["Soil moisture"])
+        # REMOVED BOLDING: f'**{data["Soil Moisture"]}**' -> data["Soil Moisture"]
+        st.write(data["Soil Moisture"]) 
         st.markdown("</div>", unsafe_allow_html=True)
 
     with c4:
         st.markdown('<div class="metric-card">', unsafe_allow_html=True)
         st.subheader("Seasonal Rainfall")
-        st.write(data["Seasonal rainfall"])
+        st.write(data["Seasonal Rainfall"])
         st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown('<div class="metric-card">', unsafe_allow_html=True)
-    st.subheader("Wind")
-    st.write(data["Wind"])
+    st.subheader("Wind Speed")
+    # REMOVED BOLDING: f'**{data["Wind Speed"]}**' -> data["Wind Speed"]
+    st.write(data["Wind Speed"])
     st.markdown("</div>", unsafe_allow_html=True)
 
     st.markdown('<div class="section-title">Notes</div>', unsafe_allow_html=True)
@@ -456,9 +462,9 @@ def page_crop_guide():
             "Crop": name,
             "Temperature": vals["Temperature"],
             "Humidity": vals["Humidity"],
-            "Soil moisture": vals["Soil moisture"],
-            "Seasonal rainfall": vals["Seasonal rainfall"],
-            "Wind": vals["Wind"],
+            "Soil Moisture": vals["Soil Moisture"],
+            "Seasonal Rainfall": vals["Seasonal Rainfall"],
+            "Wind Speed": vals["Wind Speed"],
         }
         table_data.append(row)
 
